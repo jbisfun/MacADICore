@@ -1,5 +1,8 @@
-Mac CoreADI for AnisetteKit
-============================
+MacADICore
+==========
+
+Swift package: `.package(url: "https://github.com/jbisfun/MacADICore", branch: "main")`,
+product `MacADICore` (binary target `MacADICore.xcframework`; link libz and libbz2).
 
 `src/{lib,adi,vm,macho,capi}.rs` are vendored from sacca97/os-findmy-e
 commit 374d83854f657a7fdca45f813387d99d491db0e2, as used by
@@ -7,15 +10,15 @@ Jimpactor's `crates/omnisette/src/mac_anisette.rs`. The code is MIT licensed
 (see LICENSE). It emulates a pinned x86_64 Mac CoreADI under Unicorn and
 exposes the original C ABI. It does not include Apple's CoreADI binary.
 
-`SourcesMac/MacAnisetteKit.swift` ports Jimpactor's `mac_libraries.rs`
+[AppStoreAuth](https://github.com/jbisfun/AppStoreAuth)'s `MacAnisetteKit` ports Jimpactor's `mac_libraries.rs`
 (range-fetch and validate iTunes 12.8.3's CoreADI) and `mac_anisette.rs`
 (persist identity/store, GrandSlam machine provisioning, fresh MID/OTP).
 The user's Apple account data is not in the CoreADI store.
 
-`Binaries/MacADICore.xcframework` is a static arm64-iOS-device framework.
+`MacADICore.xcframework` is a static arm64-iOS-device framework.
 It includes the vendored Rust implementation and mahee96/unicorn's x86 guest
 engine, built with the Tiny Code Interpreter (no JIT). Rebuild it from source
-on this Linux host with `MacADI/build-ios.sh`. The build script downloads the
+on this Linux host with `build-ios.sh`. The build script downloads the
 pinned Unicorn fork; it does not download Apple's CoreADI binary. The app
 fetches CoreADI itself on first run and checks both payload and binary SHA-256.
 The build target is arm64 iOS device only; simulator is not supported.
