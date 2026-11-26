@@ -2,8 +2,11 @@
 # Build wasm/dist/mac_adi.{mjs,wasm}: this crate's C API (adi_*) and Unicorn's x86
 # guest with the Tiny Code Interpreter, compiled with Emscripten. No JIT, so it
 # runs in any browser. Needs emsdk (source emsdk_env.sh), cmake, rustup.
-# Uses lbr77's Emscripten port of Unicorn (branch tci-emscripten), with the
-# memory API's sizes widened to uint64_t to match unicorn-engine 2.1.5's bindings.
+# Unicorn comes from github.com/jbisfun/unicorn branch ferry-wasm: lbr77's
+# Emscripten/TCI port plus uint64_t sizes in the memory API (to match
+# unicorn-engine 2.1.5's bindings) and code hooks that keep their user_data on
+# 32-bit hosts. Running CoreADI still traps: TCI calls helpers through a fixed set
+# of function-pointer types, and some x86 helpers' signatures aren't covered.
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
@@ -12,25 +15,8 @@ rustup target add wasm32-unknown-emscripten >/dev/null
 
 UNICORN="$ROOT/vendor/unicorn-wasm"
 if ! test -d "$UNICORN/.git"; then
-    git clone --depth 1 --branch tci-emscripten https://github.com/lbr77/unicorn.git "$UNICORN"
+    git clone --depth 1 --branch ferry-wasm https://github.com/jbisfun/unicorn.git "$UNICORN"
 fi
-python3 - "$UNICORN" <<'PY'
-import re, sys
-for path in ["uc.c", "include/unicorn/unicorn.h"]:
-    path = f"{sys.argv[1]}/{path}"
-    s = open(path).read()
-    s = re.sub(r"(uc_err uc_mem_(?:map|read|unmap|write|protect|map_ptr)\([^)]*?)size_t size", r"\1uint64_t size", s)
-    open(path, "w").write(s)
-# On a 32-bit host TCI's inline code hooks drop their user_data argument (the hook
-# sees NULL); route every code/block hook through helper_uc_tracecode instead.
-path = f"{sys.argv[1]}/qemu/include/tcg/tcg-op.h"
-s = open(path).read()
-old = "    if (puc->hooks_count[hook_type] == 1 && !(type & UC_HOOK_FLAG_NO_STOP)) {"
-new = "    if (TCG_TARGET_REG_BITS == 64 && puc->hooks_count[hook_type] == 1 && !(type & UC_HOOK_FLAG_NO_STOP)) {"
-if new not in s:
-    assert s.count(old) == 1, "tcg-op.h changed; review the inline hook patch"
-    open(path, "w").write(s.replace(old, new))
-PY
 # Rust's emscripten target unwinds with wasm exceptions, so Unicorn's setjmp/longjmp must use them too.
 FLAGS="-DUSE_STATIC_CODE_GEN_BUFFER -fwasm-exceptions -sSUPPORT_LONGJMP=wasm"
 emcmake cmake -S "$UNICORN" -B "$UNICORN/build" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
