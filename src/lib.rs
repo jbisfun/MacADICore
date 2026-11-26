@@ -4,6 +4,7 @@
 mod adi;
 pub mod capi;
 mod macho;
+#[cfg(feature = "sap")]
 mod sap;
 mod vm;
 

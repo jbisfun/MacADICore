@@ -1,0 +1,11 @@
+{
+  "name": "mac-anisette",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "mac-anisette.js",
+  "description": "Mac CoreADI anisette in wasm (browser or Node)",
+  "dependencies": {
+    "plist": "^5.1.2"
+  }
+}
